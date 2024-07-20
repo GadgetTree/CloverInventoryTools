@@ -33,6 +33,7 @@ if (programState == "1")
     Console.WriteLine("This will prepare an inventory sheet for you to upload to CLoverPOS");
     Console.WriteLine();
     Console.WriteLine();
+    workBook = CreateInventoryValueSheet(workBook);
     SaveWorkbook(workBook, "output.xlsx");
     Console.WriteLine("inventory sheet has been saved as 'output.xlsx'");
 }
@@ -237,9 +238,46 @@ XLWorkbook ProcessCompletedInventory(XLWorkbook wb)
     return wb;
 }
 
+//Create an inventory value assement
+//Does not count negative quantity inventory items
+XLWorkbook CreateInventoryValueSheet(XLWorkbook wb)
+{
+    var ws = wb.AddWorksheet("Inventory Value");
+
+    //Set values of two rows in column 1
+    ws.Row(1).Cell(1).Value = "Inventory Cost";
+    ws.Row(2).Cell(1).Value = "Inventory Retail Value";
+
+    double invCost = 0.0d;
+    double invVal = 0.0d;
+    foreach (var row in wb.Worksheet(1).RowsUsed().Skip(1))
+    {
+        
+        var quantity = row.Cell(quantityColRef).Value.ToString();
+        if (quantity.Length > 0)//if quantity has a value
+        {
+            if (int.Parse(quantity) >= 0)//if quantity is not negativ
+            {
+                var cost = row.Cell(costColRef).Value.ToString();
+                if (cost.Length > 0)
+                    invCost += Math.Round(double.Parse(cost) * int.Parse(quantity), 2);//Inventory cost += cost * quantity
+                var val = row.Cell(priceColRef).Value.ToString();
+                if (val.Length > 0)
+                    invVal += Math.Round(double.Parse(val) * int.Parse(quantity), 2);
+            }
+        }
+    }
+    
+    ws.Row(1).Cell(2).Value = invCost;
+    ws.Row(2).Cell(2).Value = invVal;
+    return wb;
+}
+
+
 void SaveWorkbook(XLWorkbook wb, String fileName)
 {
     wb.SaveAs(fileName);
+
 }
 
 //Hard values
@@ -257,4 +295,6 @@ public static class Global
     public static int upcColRef = 9;
     //Column for Quantity on hand of item in item sheet
     public static int quantityColRef = 12;
+    public static int costColRef = 8;
+    public static int priceColRef = 4;
 }
